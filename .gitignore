@@ -3,3 +3,5 @@
 *.dat
 elpa/
 ESS/
+ido.last
+*.elc

@@ -8,15 +8,78 @@
 (show-paren-mode)
 (column-number-mode)
 (global-set-key (kbd "C-t") 'delete-trailing-whitespace)
+(global-set-key (kbd "<home>") 'move-beginning-of-line)
+(global-set-key (kbd "<end>") 'move-end-of-line)
 
-;; fixing xterm bug
+
+;; switching betweem buffers
+(ido-mode 1)
+;; (ido-mode 'buffers) ;; only use this line to turn off ido for file names!
+;; (setq ido-ignore-buffers '("^ " "*Completions*" "*Shell Command Output*"
+;; 			   "*Messages*" "Async Shell Command", "*scratch*",
+;;			   "*ESS*", "*Quail Completions*"))
+(setq ido-ignore-buffers '("\\` " "^\*"))
+
+(defun next-code-buffer ()
+  (interactive)
+  (let (( bread-crumb (buffer-name) ))
+    (next-buffer)
+    (while
+	(and
+	 (string-match-p "^\*" (buffer-name))
+	 (not ( equal bread-crumb (buffer-name) )) )
+      (next-buffer))))
+(global-set-key [remap next-buffer] 'next-code-buffer)
+
+(defun previous-code-buffer ()
+  (interactive)
+  (let (( bread-crumb (buffer-name) ))
+    (previous-buffer)
+    (while
+	(and
+	 (string-match-p "^\*" (buffer-name))
+	 (not ( equal bread-crumb (buffer-name) )) )
+      (previous-buffer))))
+(global-set-key [remap previous-buffer] 'previous-code-buffer)
+
+
+
+;; Fixing xterm bug
 (define-key input-decode-map "\e[1;2A" [S-up])
 
 
 (setq x-select-enable-clipboard t)
 
-(set-input-method 'TeX)
+;; case sensitive replace-string
+(defadvice replace-string (around turn-off-case-fold-search)
+  (let ((case-fold-search nil))
+    ad-do-it))
+(ad-activate 'replace-string)
+
+
+;; TeX
+;; (set-input-method 'TeX)
+;; (toggle-input-method)
+;; (global-set-key "_" '(lambda () (interactive) (insert "_")))
+
+;; math symbols
+(package-initialize)
+(require 'math-symbol-lists)
+(quail-define-package "math" "UTF-8" "Ω" t)
+;; (quail-define-rules ; add whatever extra rules you want to define here...
+;;  ("\\from"    #X2190)
+;;  ("\\to"      #X2192)
+;;  ("\\lhd"     #X22B2)
+;;  ("\\rhd"     #X22B3)
+;;  ("\\unlhd"   #X22B4)
+;;  ("\\unrhd"   #X22B5))
+(mapc (lambda (x)
+	(if (cddr x)
+	    (quail-defrule (cadr x) (car (cddr x)))))
+      (append math-symbol-list-basic math-symbol-list-extended))
+(set-input-method 'math)
 (toggle-input-method)
+
 
 
 ;; Packages
@@ -37,14 +100,15 @@
 
 ;; Julia
 (load (expand-file-name "~/.emacs.d/ESS/lisp/ess-site"))
-(setq inferior-julia-program-name "julia")
+;; (setq inferior-julia-program-name "/opt/julia06/bin/julia")
+(setq inferior-julia-program-name "/opt/julia-src/julia")
 (add-hook 'julia-mode-hook
       '(lambda ()
          (local-set-key (kbd "C-d") 'ess-eval-line-and-step)
          (local-set-key (kbd "C-c C-c") 'ess-load-file)))
 
 
-;; Python (epy)
+;; Python (elpy)
 (elpy-enable)
 ;; (elpy-use-ipython)
 (setq elpy-rpc-python-command "python3")
@@ -54,6 +118,8 @@
 (add-hook 'python-mode-hook
 	  '(lambda ()
 	     (local-set-key (kbd "C-d") 'elpy-shell-send-current-statement)))
+
+;; (add-hook 'isend-mode-hook 'isend-default-ipython-setup)
 
 
 (defvar my-python-shell-dir-setup-code
@@ -69,75 +135,6 @@ del os")
     (message "Setup project path")))
 
 (add-hook 'inferior-python-mode-hook 'my-python-shell-dir-setup)
-
-
-;; Clojure mode (cider)
-;; (add-hook 'cider-mode-hook
-;; 	  '(lambda ()
-;; 	     (local-set-key (kbd "C-d") 'cider-eval-defun-at-point)
-;; 	     (local-set-key (kbd "C-c C-c") 'cider-load-buffer)))
-
-
-;; ;; Clojure: nrepl
-;; (when (not (package-installed-p 'nrepl))
-;;   (package-install 'nrepl))
-
-;; ;; Clojure: key bindings
-;; (add-hook 'clojure-mode-hook
-;; 	  '(lambda () (local-set-key "\C-d" 'nrepl-eval-expression-at-point)))
-
-
-;; Python
-;; NOTE: this section contains a number of useful setting for all modes,
-;; not only python mode!
-;; (add-to-list 'load-path "~/.emacs.d/emacs-for-python/")
-;; (require 'epy-setup)      ;; It will setup other loads, it is required!
-;; (require 'epy-python)     ;; If you want the python facilities [optional]
-;; (require 'epy-completion) ;; If you want the autocompletion settings [optional]
-;; (require 'epy-editing)    ;; For configurations related to editing [optional]
-;; (require 'epy-bindings)   ;; For my suggested keybindings [optional]
-;; (require 'epy-nose)       ;; For nose integration
-;; ;; (epy-setup-ipython)
-;; (setq skeleton-pair nil)
-;; ;; (ansi-color-for-comint-mode-on)
-;; (setq python-shell-interpreter "ipython3"
-;;       python-shell-interpreter-args "--simple-prompt -i")
-
-
-;; (defun trim-string (string)
-;;   (replace-regexp-in-string "\\`[ \t\n]*" ""
-;;                             (replace-regexp-in-string "[ \t\n]*\\'" "" string)))
-
-;; (defun python-shell-send-line ()
-;;   (interactive)
-;;   (python-shell-send-string (trim-string (thing-at-point 'line)) nil t)
-;;   (next-line))
-
-
-;; (add-hook 'python-mode-hook
-;; 	  '(lambda ()
-;; 	     (local-set-key (kbd "C-d") 'python-shell-send-line)
-;; 	     (local-set-key (kbd "C-c C-k") 'python-shell-send-buffer)
-;; 	     (local-set-key (kbd "C-c !") 'run-python)
-;; 	     (pretty-lambda-mode)
-;; 	     (jedi:setup)
-;; 	     (setq jedi:setup-keys t)
-;; 	     (setq jedi:complete-on-dot t)))
-
-
-;; (defvar my-python-shell-dir-setup-code
-;;   "import os
-;; home = os.path.expanduser('~')
-;; while os.path.exists('__init__.py') and os.getcwd() != home:
-;;     os.chdir('..')
-;; del os")
-
-;; (defun my-python-shell-dir-setup ()
-;;   (let ((process (get-buffer-process (current-buffer))))
-;;     (python-shell-send-string my-python-shell-dir-setup-code process)
-;;     (message "Setup project path")))
-
-;; (add-hook 'inferior-python-mode-hook 'my-python-shell-dir-setup)
 
 
 ;; Scala
@@ -216,8 +213,19 @@ del os")
 ;; 	    (defvaralias 'cperl-indent-level 'tab-width)))
 
 
+;; TeX
+(setq TeX-auto-save t)
+(setq TeX-parse-self t)
+(setq TeX-save-query nil)
+;(setq TeX-PDF-mode t)
+
 ;; XML
 (setq nxml-child-indent 8)
+
+;; RSS
+
+(setq elfeed-feeds
+      '("https://juliaobserver.com/feeds/packages.rss"))
 
 
 (load (expand-file-name "~/.emacs.d/fireplace/fireplace"))
