@@ -11,6 +11,11 @@
 (global-set-key (kbd "<home>") 'move-beginning-of-line)
 (global-set-key (kbd "<end>") 'move-end-of-line)
 
+;; GUI settings
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
+(setq inhibit-startup-screen t)
+(tool-bar-mode -1)
+
 
 ;; switching betweem buffers
 (ido-mode 1)
